@@ -36,25 +36,56 @@ def rule_liaison(text):
             i += 1
             continue
 
-        print(f"[DEBUG] 현재: '{curr}' (초성: {c_init}, 중성: {c_med}, 종성: {c_final}), 다음: '{next_char}' (초성: {n_init})")
-
         # 받침 있고, 다음 글자의 초성이 'ᄋ'이면 연음화
         if c_final != ' ' and n_init == 'ᄋ':  # 초성 'ᄋ' 기준으로 비교
-            moved = join_jamos(c_init, c_med, ' ')
-            # 종성 → 초성 변환
-            jong2cho = {
-                'ᆨ': 'ᄀ', 'ᆫ': 'ᄂ', 'ᆮ': 'ᄃ', 'ᆯ': 'ᄅ', 'ᆷ': 'ᄆ',
-                'ᆸ': 'ᄇ', 'ᆺ': 'ᄉ', 'ᆼ': 'ᄋ', 'ᆽ': 'ᄌ', 'ᆾ': 'ᄎ',
-                'ᆿ': 'ᄏ', 'ᇀ': 'ᄐ', 'ᇁ': 'ᄑ', 'ᇂ': 'ᄒ'
-            }
-            converted_init = jong2cho.get(c_final, 'ᄋ')
-            new_next = join_jamos(converted_init, n_med, n_final)
-            print(f"[DEBUG] 연음 적용: '{curr}{next_char}' → '{moved}{new_next}'")
-            result += moved + new_next
-            i += 2  # 두 글자 모두 소모
+            if random.random() < 0.7:
+                moved = join_jamos(c_init, c_med, ' ')
+                # 종성 → 초성 변환
+                jong2cho = {
+                    'ᆨ': 'ᄀ', 'ᆫ': 'ᄂ', 'ᆮ': 'ᄃ', 'ᆯ': 'ᄅ', 'ᆷ': 'ᄆ',
+                    'ᆸ': 'ᄇ', 'ᆺ': 'ᄉ', 'ᆼ': 'ᄋ', 'ᆽ': 'ᄌ', 'ᆾ': 'ᄎ',
+                    'ᆿ': 'ᄏ', 'ᇀ': 'ᄐ', 'ᇁ': 'ᄑ', 'ᇂ': 'ᄒ'
+                }
+                converted_init = jong2cho.get(c_final, 'ᄋ')
+                new_next = join_jamos(converted_init, n_med, n_final)
+                result += moved + new_next
+                i += 2  # 두 글자 모두 소모
+                continue
+        result += curr
+        i += 1
+
+    if i < len(text):
+        result += text[i]
+    return result
+
+def rule_duplicate_onset(text):
+    result = ""
+    i = 0
+    while i < len(text) - 1:
+        curr = text[i]
+        next_char = text[i + 1]
+        try:
+            c_init, c_med, c_final = split_syllable_char(curr)
+            n_init, n_med, n_final = split_syllable_char(next_char)
+        except:
+            result += curr
+            i += 1
+            continue
+
+        if c_final == ' ' and n_init != 'ᄋ':  # 받침이 없고, 다음 초성이 자음이면
+            if random.random() < 0.7:
+                jong = {
+                    'ᄀ': 'ᆨ', 'ᄁ': 'ᆩ', 'ᄂ': 'ᆫ', 'ᄃ': 'ᆮ', 'ᄄ': 'ᆯ', 'ᄅ': 'ᆯ',
+                    'ᄆ': 'ᆷ', 'ᄇ': 'ᆸ', 'ᄈ': 'ᆹ', 'ᄉ': 'ᆺ', 'ᄊ': 'ᆻ', 'ᄋ': 'ᆼ',
+                    'ᄌ': 'ᆽ', 'ᄍ': 'ᆾ', 'ᄎ': 'ᆾ', 'ᄏ': 'ᆿ', 'ᄐ': 'ᇀ', 'ᄑ': 'ᇁ', 'ᄒ': 'ᇂ'
+                }.get(n_init, 'ᆼ')  # fallback to 'ᆼ' if not matched
+                new_curr = join_jamos(c_init, c_med, jong)
+                result += new_curr
+                i += 1
+            else:
+                result += curr
+                i += 1
         else:
-            print(f"[DEBUG 조건검사] c_final: '{c_final}' (ord: {ord(c_final)}), c_final != ' ': {c_final != ' '}")
-            print(f"[DEBUG 조건검사] n_init: '{n_init}' (ord: {ord(n_init)}), n_init == 'ㅇ': {n_init == 'ㅇ'}")
             result += curr
             i += 1
 
@@ -62,14 +93,38 @@ def rule_liaison(text):
         result += text[i]
     return result
 
-def rule_duplicate_onset(text):
-    return "[받침중복]" + text
-
 def rule_replace_jamo(text):
-    return "[유사자모]" + text
+    jamo_map = {
+        'ᅡ': 'ᅣ', 'ᅥ': 'ᅧ', 'ᅩ': 'ᅭ', 'ᅮ': 'ᅲ',
+        'ᅢ': 'ᅤ', 'ᅦ': 'ᅨ'
+    }
+
+    result = ""
+    for ch in text:
+        try:
+            cho, jung, jong = split_syllable_char(ch)
+            if random.random() < 0.7:
+                cho = jamo_map.get(cho, cho)
+                jung = jamo_map.get(jung, jung)
+            result += join_jamos(cho, jung, jong)
+        except:
+            result += ch
+    return result
+
+import random
 
 def rule_add_jongseong(text):
-    return "[의미없는받침]" + text
+    meaningless_jongs = ['ㄱ', 'ㄴ', 'ᆮ', 'ᆯ', 'ᆷ', 'ᆸ', 'ᆺ', 'ᆼ']
+    result = ""
+    for ch in text:
+        try:
+            cho, jung, jong = split_syllable_char(ch)
+            if jong == ' ' and random.random() < 0.3:
+                jong = random.choice(meaningless_jongs)
+            result += join_jamos(cho, jung, jong)
+        except:
+            result += ch
+    return result
 
 rules = [
     ("연음 적용", rule_liaison),
@@ -79,8 +134,8 @@ rules = [
 ]
 
 def obfuscate(text):
-    selected = random.sample(rules, k=random.randint(1, len(rules)))
     print("\n[적용 순서]")
+    selected = random.sample(rules, k=random.randint(1, len(rules)))
     for name, _ in selected:
         print("- " + name)
     for _, func in selected:
