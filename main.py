@@ -1,4 +1,6 @@
+import pandas as pd
 import random
+import os
 
 # Hangul decomposition and composition
 def split_syllable_char(char):
@@ -15,10 +17,15 @@ def split_syllable_char(char):
     )
 
 def join_jamos(initial, vowel, final=' '):
-    ini = ord(initial) - 0x1100
-    vow = ord(vowel) - 0x1161
-    fin = 0 if final == ' ' else ord(final) - 0x11A7
-    return chr(0xAC00 + 588 * ini + 28 * vow + fin)
+    try:
+        ini = ord(initial) - 0x1100
+        vow = ord(vowel) - 0x1161
+        fin = 0 if final == ' ' else ord(final) - 0x11A7
+        if not (0 <= ini < 19 and 0 <= vow < 21 and 0 <= fin < 28):
+            return ''
+        return chr(0xAC00 + 588 * ini + 28 * vow + fin)
+    except:
+        return ''
 
 # 테스트용: 규칙 함수 틀
 def rule_liaison(text):
@@ -134,16 +141,42 @@ rules = [
 ]
 
 def obfuscate(text):
-    print("\n[적용 순서]")
+    #print("\n[적용 순서]")
     selected = random.sample(rules, k=random.randint(1, len(rules)))
-    for name, _ in selected:
-        print("- " + name)
+    #for name, _ in selected:
+        #print("- " + name)
     for _, func in selected:
         text = func(text)
     return text
 
 if __name__ == '__main__':
+    '''
     input_text = input("한글 문장을 입력하세요: ")
     result = obfuscate(input_text)
     print("\n[난독화 결과]")
     print(result)
+    '''
+    file_path = input("엑셀 파일 경로를 입력하세요: ")
+    if not os.path.isfile(file_path):
+        print(f"파일을 찾을 수 없습니다: {file_path}")
+        exit(1)
+
+    # 엑셀 파일 로드
+    df = pd.read_excel(file_path)
+
+    # 한글 문장 필터링
+    sentences = df[df['source_language_code'] == 'ko']['source_sentence'].dropna().tolist()
+
+    # 난독화 수행 및 저장
+    results = []
+    for idx, sentence in enumerate(sentences):
+        obfuscated = obfuscate(sentence)
+        results.append((idx, sentence, obfuscated))
+
+    # CSV로 저장
+    base_name = os.path.splitext(os.path.basename(file_path))[0]
+    output_file = f"{base_name}_난독화결과.csv"
+    result_df = pd.DataFrame(results, columns=["index", "original", "obfuscated"])
+    result_df.to_csv(output_file, index=False, encoding="utf-8-sig", errors='replace')
+
+    print(f"\n[CSV 저장 완료] {output_file}")
